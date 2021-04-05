@@ -1,0 +1,4 @@
+# Oversampling-based-Data-Augmentation-for-NILM
+1. 调用aggregate_data_washer.py和aggliance_data_washer.py清洗家庭总功率数据和每个电器的功率数据，其中每个channel指对应编号的电器。
+2. 调用data_downsampler.py对清洗好的数据集进行降采样处理。因为不同数据集间的采样率不同，如果想研究transferability的话，需要各个数据集采样率相同来保持一致。
+3. 调用appliance_activation_extractor.py来抽取电器的运行曲线activation（即电器处于开启状态的功率读数），主要用于后面的正样本提取。代码中包含着记录数据和可视化两个模块，根据需要自行使用。tip: 运行该代码需要导入第三方库nilmtk。

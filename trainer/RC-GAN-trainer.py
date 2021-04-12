@@ -62,28 +62,22 @@ if __name__ == '__main__':
             d_optimizer.zero_grad()
             d_loss.backward()
             d_optimizer.step()
-            if ( (i+1)%d_steps == 0 ):
-                if real_scores.data.mean() > 0.95:
-                    flag = True
 
-            if flag == True:
-                for j in range(100000):
-                    # print("i = " + str(i) + ': generator training ')
-                    # ===============train generator
-                    # compute loss of fake_img
-                    z = torch.randn(batch_size, z_dimension,1).cuda()
-                    fake_load = G(z)
-                    output = D(fake_load)
-                    real_label = torch.ones(batch_size, 1).cuda()
-                    g_loss = criterion(output, real_label)
+            # print("i = " + str(i) + ': generator training ')
+            # ===============train generator
+            # compute loss of fake_img
+            z = torch.randn(batch_size, z_dimension, 1).cuda()
+            fake_load = G(z)
+            output = D(fake_load)
+            real_label = torch.ones(batch_size, 1).cuda()
+            g_loss = criterion(output, real_label)
 
-                    # bp and optimize
-                    g_optimizer.zero_grad()
-                    g_loss.backward()
-                    g_optimizer.step()
-                    if output.data.mean() > 0.9:
-                        #print(j, output.data.mean())
-                        break
+            # bp and optimize
+            g_optimizer.zero_grad()
+            g_loss.backward()
+            g_optimizer.step()
+
+
 
             if (i + 1) % 100 == 0:
                 print('Epoch [{}/{}], d_loss: {:.6f}, g_loss: {:.6f} '

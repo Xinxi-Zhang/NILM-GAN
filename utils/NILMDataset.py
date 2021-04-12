@@ -77,9 +77,9 @@ class NILMDataset(Dataset):
             valid_positive_sample_indices = valid_sample_indices[np.in1d(valid_sample_indices, positive_sample_indices)]
 
             if mode == 0:
-                valid_positive_sample_indices = valid_sample_indices[0 : int(0.9*valid_sample_indices.shape[0])]
+                valid_positive_sample_indices = valid_positive_sample_indices[0 : int(0.9*valid_positive_sample_indices.shape[0])]
             elif mode == 1:
-                valid_positive_sample_indices = valid_sample_indices[int(0.9 * valid_sample_indices.shape[0]) : int(valid_sample_indices.shape[0])]
+                valid_positive_sample_indices = valid_positive_sample_indices[int(0.9 * valid_positive_sample_indices.shape[0]) : int(valid_positive_sample_indices.shape[0])]
             self.valid_sample_indices.append(valid_positive_sample_indices)
 
         del appliance_data

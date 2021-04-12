@@ -20,8 +20,8 @@ redd_channels = {
 }
 class NILMDataset(Dataset):
 
-    #数据集初始化，model = 0 为训练集， 1 为验证集， 2为测试集
-    def __init__(self,path,app,dataset,window_size):
+    #数据集初始化，mode = 0 为训练集， 1 为验证集， 2为测试集
+    def __init__(self,path,app,dataset,window_size,mode = 0):
         self.all_houses_aggregate_data = []
         self.valid_sample_indices = []
         self.path = path
@@ -76,6 +76,10 @@ class NILMDataset(Dataset):
             # 获得有效的正样本索引
             valid_positive_sample_indices = valid_sample_indices[np.in1d(valid_sample_indices, positive_sample_indices)]
 
+            if mode == 0:
+                valid_positive_sample_indices = valid_sample_indices[0 : int(0.9*valid_sample_indices.shape[0])]
+            elif mode == 1:
+                valid_positive_sample_indices = valid_sample_indices[int(0.9 * valid_sample_indices.shape[0]) : int(valid_sample_indices.shape[0])]
             self.valid_sample_indices.append(valid_positive_sample_indices)
 
         del appliance_data
@@ -106,10 +110,12 @@ class NILMDataset(Dataset):
         if mode == -1:
             path = self.path+'\\house_'+str(house)+'\\mains.csv'
             return path
+
         #mode = 1 means appliance data path
         if mode == 1:
             path = self.path+'\\house_'+str(house)+'\\channel_'+str(channel)+'\\channel_'+str(channel)+'.csv'
             return path
+
         # mode = 0 means positive indices data path
         if mode == 0:
             path = self.path + '\\house_' + str(house) + '\\channel_' + str(channel) + '\\positive_sample_indices.csv'
@@ -129,3 +135,8 @@ class NILMDataset(Dataset):
         selected_sample_labels = torch.from_numpy(
             np.array([1])).type(torch.FloatTensor)
         return selected_sample_data, selected_sample_labels
+
+
+
+if __name__ == '__main__':
+    dataset = NILMDataset(r'D:\科研项目\NILM\dataset\uk_dale', 'wm', 'uk', 599)

@@ -17,17 +17,20 @@ class discriminator(nn.Module):
         return x
 
 
-class generator(nn.Module):
+class generator (nn.Module):
     def __init__(self):
         super(generator, self).__init__()
-        self.rnn = rnn = GRU(input_size = 1, hidden_size = 5, bidirectional = True, bias = True, batch_first = True)
+        self.rnn = GRU(input_size = 1, hidden_size = 5, bidirectional = True, bias = True, batch_first = True)
         self.gen = nn.Sequential(
             nn.ReLU(True),
-            nn.Linear(1000, 599),
+            nn.Linear(10, 6),
             )
 
     def forward(self, x):
-        x,h = self.rnn(x)
-        x = x.reshape([-1,1000])
+        x, h = self.rnn(x)
+        x = x.reshape([-1, 1000])
+        x = x.reshape([-1, 100, 10])
         x = self.gen(x)
+        x = x.reshape([-1, 600])
+        x = x[:, :599]
         return x

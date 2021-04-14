@@ -21,7 +21,7 @@ redd_channels = {
 class NILMDataset(Dataset):
 
     #数据集初始化，mode = 0 为训练集， 1 为验证集， 2为测试集
-    def __init__(self,path,app,dataset,window_size,mode = 0):
+    def __init__(self,path,app,dataset,window_size,houses,mode = 0):
         self.all_houses_aggregate_data = []
         self.valid_sample_indices = []
         self.path = path
@@ -36,6 +36,8 @@ class NILMDataset(Dataset):
         self.window_size = window_size
 
         for i in range(0,len(self.houses)):
+            if self.houses[i] not in houses:
+                continue
             if self.channels[i] == -1:
                 continue
             tmp = self.makepath(i,-1)

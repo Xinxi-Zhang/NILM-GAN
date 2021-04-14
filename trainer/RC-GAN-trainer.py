@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader
 from Data_util.NILMDataset import NILMDataset
 from my_model.RC_GAN import discriminator, generator
 from my_model.model_saver import saver
@@ -11,15 +11,15 @@ if __name__ == '__main__':
     window_size = 599
     z_dimension = 100
     lr = 0.0003
-    mission = 'RC-GAN-00'
-    saver = saver(taskname = mission, flag = False)
+    mission = 'RC-GAN-01-uk-house1-wm'
+    saver = saver(taskname = mission, flag = True)
 
     # the steps for training epoch for discriminator and generator
     d_steps = 10
     g_steps = 1
 
     # to load the data using the NILMDataset
-    data = NILMDataset(r'D:\Research\NILM\dataset\uk_dale', 'wm', 'uk', window_size, mode= 0)
+    data = NILMDataset(r'D:\Research\NILM\dataset\uk_dale', 'wm', 'uk', window_size, houses=[1], mode= 0)
     dataloader = DataLoader(data, batch_size=batch_size, shuffle=True)
 
     # define the discriminator and generator
@@ -60,23 +60,32 @@ if __name__ == '__main__':
             # bp and optimize
             d_loss = d_loss_real + d_loss_fake
             d_optimizer.zero_grad()
+            torch.autograd.set_detect_anomaly(True)
             d_loss.backward()
             d_optimizer.step()
 
-            # print("i = " + str(i) + ': generator training ')
-            # ===============train generator
-            # compute loss of fake_img
-            z = torch.randn(batch_size, z_dimension, 1).cuda()
-            fake_load = G(z)
-            output = D(fake_load)
-            real_label = torch.ones(batch_size, 1).cuda()
-            g_loss = criterion(output, real_label)
+            if ((i+1)%d_steps == 0):
+                if real_scores.data.mean() > 0.95:
+                    flag = True
 
-            # bp and optimize
-            g_optimizer.zero_grad()
-            g_loss.backward()
-            g_optimizer.step()
+            while(flag):
 
+                # print("i = " + str(i) + ': generator training ')
+                # ===============train generator
+                # compute loss of fake_img
+                z = torch.randn(batch_size, z_dimension, 1).cuda()
+                fake_load = G(z)
+                output = D(fake_load)
+                real_label = torch.ones(batch_size, 1).cuda()
+                g_loss = criterion(output, real_label)
+
+                # bp and optimize
+                g_optimizer.zero_grad()
+                g_loss.backward()
+                g_optimizer.step()
+                if output.data.mean() > 0.9:
+                    # print(j, output.data.mean())
+                    break
 
 
             if (i + 1) % 100 == 0:
@@ -86,15 +95,22 @@ if __name__ == '__main__':
                 real_scores.data.mean(), fake_scores.data.mean()))
 
         if (epoch + 1) % 20 == 0:
-            z = torch.randn(1, z_dimension).cuda()
-            fake_load = G(z)
-            l = fake_load.cpu().detach().numpy()
-            l = l.reshape(window_size)
-            l = l.tolist()
-            saver.save_img(img=l, epoch=epoch)
+            for k in range(10):
+                z = torch.randn(1, z_dimension, 1).cuda()
+                fake_load = G(z)
+                l = fake_load.cpu().detach().numpy()
+                l = l.reshape(window_size)
+                l = l.tolist()
+                saver.save_img(img=l, epoch=epoch, index=k)
 
         if (epoch + 1) % 50 == 0:
             saver.save_model(g=G, d=D, epoch=epoch)
+
+
+
+
+
+
 
 
 

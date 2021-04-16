@@ -10,17 +10,19 @@ if __name__ == '__main__':
     num_epoch = 5000
     window_size = 599
     z_dimension = 100
-    lr = 0.0003
-    mission = 'RC-GAN-01-uk-house1-wm'
-    saver = saver(taskname = mission, flag = True)
+    d_lr = 0.0003
+    g_lr = 0.00003
+    mission = 'RC-GAN-04-uk-house1-wm(min_max)'
+    saver = saver(taskname = mission, flag = False)
 
     # the steps for training epoch for discriminator and generator
-    d_steps = 10
+    d_steps = 3
     g_steps = 1
 
     # to load the data using the NILMDataset
     data = NILMDataset(r'D:\Research\NILM\dataset\uk_dale', 'wm', 'uk', window_size, houses=[1], mode= 0)
     dataloader = DataLoader(data, batch_size=batch_size, shuffle=True)
+
 
     # define the discriminator and generator
     D = discriminator()
@@ -32,11 +34,12 @@ if __name__ == '__main__':
     # Binary cross entropy loss and optimizer
     criterion = nn.BCELoss()
     criterion = criterion.cuda()
-    d_optimizer = torch.optim.Adam(D.parameters(), lr=lr)
-    g_optimizer = torch.optim.Adam(G.parameters(), lr=lr)
+    d_optimizer = torch.optim.Adam(D.parameters(), lr=d_lr)
+    g_optimizer = torch.optim.Adam(G.parameters(), lr=g_lr)
 
     for epoch in range(num_epoch):
-
+        if epoch >= 50:
+            d_steps = d_steps
         for i, (real_load, real_label) in enumerate(dataloader):
             flag = False
             #print("i = " + str(i) + ': discriminator training ')
@@ -51,8 +54,10 @@ if __name__ == '__main__':
             real_scores = real_out  # closer to 1 means better
 
             # compute loss of fake_img
-            z = torch.randn(real_load.shape[0], z_dimension,1).cuda()
+            z = torch.randn(real_load.shape[0], z_dimension, 256).cuda()
             fake_load = G(z)
+            min, max = data.sample_min_max()
+            fake_load = fake_load*(max-min)+min
             fake_out = D(fake_load)
             d_loss_fake = criterion(fake_out, fake_label)
             fake_scores = fake_out  # closer to 0 means better
@@ -60,21 +65,22 @@ if __name__ == '__main__':
             # bp and optimize
             d_loss = d_loss_real + d_loss_fake
             d_optimizer.zero_grad()
-            torch.autograd.set_detect_anomaly(True)
+            #torch.autograd.set_detect_anomaly(True)
             d_loss.backward()
             d_optimizer.step()
 
             if ((i+1)%d_steps == 0):
-                if real_scores.data.mean() > 0.95:
-                    flag = True
+                flag = True
 
             while(flag):
 
                 # print("i = " + str(i) + ': generator training ')
                 # ===============train generator
                 # compute loss of fake_img
-                z = torch.randn(batch_size, z_dimension, 1).cuda()
+                z = torch.randn(batch_size, z_dimension, 256).cuda()
                 fake_load = G(z)
+                min, max = data.sample_min_max()
+                fake_load = fake_load * (max - min) + min
                 output = D(fake_load)
                 real_label = torch.ones(batch_size, 1).cuda()
                 g_loss = criterion(output, real_label)
@@ -83,9 +89,7 @@ if __name__ == '__main__':
                 g_optimizer.zero_grad()
                 g_loss.backward()
                 g_optimizer.step()
-                if output.data.mean() > 0.9:
-                    # print(j, output.data.mean())
-                    break
+                flag = False
 
 
             if (i + 1) % 100 == 0:
@@ -94,23 +98,19 @@ if __name__ == '__main__':
                 epoch, num_epoch, d_loss.data, g_loss.data,
                 real_scores.data.mean(), fake_scores.data.mean()))
 
-        if (epoch + 1) % 20 == 0:
+        if (epoch + 1) % 1 == 0:
             for k in range(10):
-                z = torch.randn(1, z_dimension, 1).cuda()
+                z = torch.randn(1, z_dimension, 256).cuda()
                 fake_load = G(z)
+                min, max = data.sample_min_max()
+                fake_load = fake_load * (max - min) + min
                 l = fake_load.cpu().detach().numpy()
                 l = l.reshape(window_size)
                 l = l.tolist()
                 saver.save_img(img=l, epoch=epoch, index=k)
 
-        if (epoch + 1) % 50 == 0:
+        if (epoch + 1) % 1 == 0:
             saver.save_model(g=G, d=D, epoch=epoch)
-
-
-
-
-
-
 
 
 

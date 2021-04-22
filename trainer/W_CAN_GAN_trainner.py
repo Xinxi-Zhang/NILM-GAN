@@ -19,8 +19,8 @@ if __name__ == '__main__':
     start_epoch = 0
     Lambda = 10
     critic_steps = 5
-    mission = 'W-CNN-GAN-00-uk-house1-wm(min_max_with_z)'
-    saver = saver(taskname = mission, flag = True)
+    mission = 'W-CNN-GAN-00-uk-house1-wm(ADAM)'
+    saver = saver(taskname=mission, flag=True)
 
     # to load the data using the NILMDataset
     data = NILMDataset(r'D:\Research\NILM\dataset\uk_dale', 'wm', 'uk', window_size, houses=[1], mode=0)
@@ -38,8 +38,8 @@ if __name__ == '__main__':
         G = G.cuda()
 
     # Binary cross entropy loss and optimizer
-    d_optimizer = torch.optim.Adam(D.parameters(), lr=d_lr, betas=(0.5, 0.9))
-    g_optimizer = torch.optim.Adam(G.parameters(), lr=g_lr, betas=(0.5, 0.9))
+    d_optimizer = torch.optim.Adam(D.parameters(), lr=d_lr, betas=[0.5, 0.9])
+    g_optimizer = torch.optim.Adam(G.parameters(), lr=g_lr, betas=[0.5, 0.9])
 
     one = torch.tensor(1, dtype = torch.float)
     mone = one * -1
@@ -63,8 +63,6 @@ if __name__ == '__main__':
             D.zero_grad()
             real_scores = D(real_load_v)
             real_scores = real_scores.mean()
-            # print D_real
-            real_scores.backward(mone)
 
             # train with fake
             z = torch.rand(real_load.shape[0], z_dimension, window_size).cuda()
@@ -79,14 +77,12 @@ if __name__ == '__main__':
 
             fake_scores = D(inputV)
             fake_scores = fake_scores.mean()
-            fake_scores.backward(one)
 
             # train with gradient penalty
             penalty = critic.calc_gradient_penalty(D, real_load_v.data, fake_load.data, real_load.shape[0])
 
-            penalty.backward()
-
             D_cost = fake_scores - real_scores + penalty
+            D_cost.backward()
             Wasserstein_D = real_scores - fake_scores
             d_optimizer.step()
 
@@ -101,30 +97,31 @@ if __name__ == '__main__':
                 z_v = autograd.Variable(z)
                 fake_load = G(z_v, min, max)
                 fake_scores = D(fake_load)
-                fake_scores = fake_scores.mean()
-                fake_scores.backward(mone)
+                fake_scores = -fake_scores.mean()
+                fake_scores.backward()
                 G_cost = -fake_scores
                 g_optimizer.step()
 
-            if (i + 1) % 100 == 0:
-                f = open(saver.get_txt_path(), 'w+')
+        f = open(saver.get_txt_path(), 'a')
 
-                print('Epoch [{}/{}], d_loss: {:.6f}, g_loss: {:.6f} '
-                'D real: {:.6f}, D fake: {:.6f}, Wass_cost: {:.6f}, D Step: {:.1f}'.format(
-                epoch+1, num_epoch, D_cost.data, G_cost.data,
-                real_scores.data.mean(), fake_scores.data.mean(), Wasserstein_D.data.mean(), critic_steps), file=f, flush=True)
+        print('Epoch [{}/{}], d_loss: {:.6f}, g_loss: {:.6f} '
+              'D real: {:.6f}, D fake: {:.6f}, Wass_cost: {:.6f}, D Step: {:.1f}'.format(
+            epoch + 1, num_epoch, D_cost.data, G_cost.data,
+            real_scores.data.mean(), fake_scores.data.mean(), Wasserstein_D.data.mean(), critic_steps), file=f,
+            flush=True)
 
-                print('Epoch [{}/{}], d_loss: {:.6f}, g_loss: {:.6f} '
-                'D real: {:.6f}, D fake: {:.6f}, Wass_cost: {:.6f}, D Step: {:.1f}'.format(
-                epoch+1, num_epoch, D_cost.data, G_cost.data,
-                real_scores.data.mean(), fake_scores.data.mean(), Wasserstein_D.data.mean(), critic_steps), file=sys.stdout)
-                f.close()
+        print('Epoch [{}/{}], d_loss: {:.6f}, g_loss: {:.6f} '
+              'D real: {:.6f}, D fake: {:.6f}, Wass_cost: {:.6f}, D Step: {:.1f}'.format(
+            epoch + 1, num_epoch, D_cost.data, G_cost.data,
+            real_scores.data.mean(), fake_scores.data.mean(), Wasserstein_D.data.mean(), critic_steps), file=sys.stdout)
+        f.close()
 
         if (epoch + 1) % 1 == 0:
             for k in range(10):
                 z = torch.rand(1, z_dimension, window_size).cuda()
                 min, max = data.sample_min_max()
                 z = z * (max - min) + min
+                z_v = autograd.Variable(z)
                 fake_load = G(z_v, min, max)
                 l = fake_load.cpu().detach().numpy()
                 l = l.reshape(window_size)
@@ -133,8 +130,3 @@ if __name__ == '__main__':
 
         if (epoch + 1) % 1 == 0:
             saver.save_model(g=G, d=D, epoch=epoch)
-
-
-
-
-

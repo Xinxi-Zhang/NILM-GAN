@@ -25,6 +25,7 @@ class generator(nn.Module):
         self.fc = nn.Sequential(
             nn.ReLU(),
             nn.Linear(32, 1),
+            nn.Sigmoid()
         )
     def forward(self, x, min, max):
         x = self.encoder(x)

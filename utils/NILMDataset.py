@@ -19,6 +19,14 @@ redd_channels = {
     'fr' : [9, 7, -1, 18, 8],
     'mw' : [6, 16, -1, 3, -1]
 }
+refit_houses = [2, 3, 5, 9]
+refit_channels = {
+    'wm' : [2, 13, 7, 8],
+    'dw' : [3, 9, 15, 20],
+    'kt' : [-1, -1, -1, -1],
+    'fr' : [9, 7, -1, 18],
+    'mw' : [6, 16, -1, 3]
+}
 class NILMDataset(Dataset):
 
     #数据集初始化，mode = 0 为训练集， 1 为验证集， 2为测试集
@@ -34,6 +42,11 @@ class NILMDataset(Dataset):
         if dataset == 'redd':
             self.houses = redd_houses
             self.channels = redd_channels[app]
+            
+        if dataset == 'refit':
+            self.houses = refit_houses
+            self.channels = refit_channels[app]
+            
         self.window_size = window_size
 
         for i in range(0,len(self.houses)):

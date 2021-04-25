@@ -146,3 +146,15 @@ if __name__ == '__main__':
 
         if (epoch + 1) % 1 == 0:
             saver.save_model(g=G, d=D, epoch=epoch)
+            
+        path = r'C:\Users\69037\Desktop\NILM\git\NILM-GAN\save\uk-house1-fridge\app_load'
+        os.makedirs(path)
+        for i in range(100):
+            path = r'C:\Users\69037\Desktop\NILM\git\NILM-GAN\save\uk-house1-fridge\app_load'
+            path += '\\' + str(i) + '.png'
+            index = random.randint(0, len(data))
+            load, label = data[index]
+            l = load.cpu().detach().numpy()
+            l = l.reshape(599)
+            l = l.tolist()
+            plot_window_size(l, save_path=path)

@@ -11,6 +11,7 @@ uk_channels = {
     'fr' : [12, 19],
     'mw' : [13, 23]
 }
+
 redd_houses = [2, 3, 4, 5, 6]
 redd_channels = {
     'wm' : [7, 13, 7, 8, 4],
@@ -19,19 +20,22 @@ redd_channels = {
     'fr' : [9, 7, -1, 18, 8],
     'mw' : [6, 16, -1, 3, -1]
 }
+
 refit_houses = [2, 3, 5, 9]
 refit_channels = {
-    'wm' : [2, 13, 7, 8],
-    'dw' : [3, 9, 15, 20],
-    'kt' : [-1, -1, -1, -1],
-    'fr' : [9, 7, -1, 18],
-    'mw' : [6, 16, -1, 3]
+    'wm' : [2, 6, 3, 3],
+    'dw' : [3, 5, 4, 4],
+    'kt' : [8, 9, 8, 7],
+    'fr' : [1, 2, 1, 1],
+    'mw' : [5, 8, 7, 6]
 }
+
 class NILMDataset(Dataset):
 
     #数据集初始化，mode = 0 为训练集， 1 为验证集， 2为测试集
     def __init__(self,path,app,dataset,window_size,houses,mode = 0):
         self.all_houses_aggregate_data = []
+        self.all_houses_appliance_data = []
         self.valid_sample_indices = []
         self.path = path
 
@@ -42,11 +46,11 @@ class NILMDataset(Dataset):
         if dataset == 'redd':
             self.houses = redd_houses
             self.channels = redd_channels[app]
-            
+
         if dataset == 'refit':
             self.houses = refit_houses
             self.channels = refit_channels[app]
-            
+
         self.window_size = window_size
 
         for i in range(0,len(self.houses)):
@@ -73,6 +77,7 @@ class NILMDataset(Dataset):
             aggregate_data = aggregate_data[:, 1]
             appliance_data = appliance_data[:, 1]
             self.all_houses_aggregate_data.append(aggregate_data)
+            self.all_houses_appliance_data.append(appliance_data)
 
 
             '先获得可用的有效样本'
@@ -102,7 +107,7 @@ class NILMDataset(Dataset):
         del aggregate_data
 
         # 获取每个家庭数据的维度，用于将所有家庭的有效样本索引储存在一起
-        all_houses_size = [house.shape[0] for house in self.all_houses_aggregate_data]
+        all_houses_size = [house.shape[0] for house in self.all_houses_appliance_data]
         all_houses_size = [np.sum(all_houses_size[: i + 1]) for i in range(0, len(all_houses_size))]
         for i in range(1, len(self.valid_sample_indices)):
             self.valid_sample_indices[0] = np.concatenate((self.valid_sample_indices[0],
@@ -111,10 +116,10 @@ class NILMDataset(Dataset):
         self.valid_sample_indices = self.valid_sample_indices[0]
 
         # 合并所有家庭的总表数据
-        for i in range(1, len(self.all_houses_aggregate_data)):
-            self.all_houses_aggregate_data[0] = np.concatenate((self.all_houses_aggregate_data[0],
-                                                                self.all_houses_aggregate_data[i]), axis=0)
-        self.all_houses_aggregate_data = self.all_houses_aggregate_data[0]
+        for i in range(1, len(self.all_houses_appliance_data)):
+            self.all_houses_appliance_data[0] = np.concatenate((self.all_houses_appliance_data[0],
+                                                                self.all_houses_appliance_data[i]), axis=0)
+        self.all_houses_appliance_data = self.all_houses_appliance_data[0]
 
         # 获取数据长度（有效样本数量）
         self.len = self.valid_sample_indices.shape[0]
@@ -148,7 +153,7 @@ class NILMDataset(Dataset):
         selected_index = self.valid_sample_indices[index]
         # 获取训练数据
         selected_sample_data = np.expand_dims(
-            self.all_houses_aggregate_data[selected_index: selected_index + self.window_size], axis=1).transpose(1, 0)
+            self.all_houses_appliance_data[selected_index: selected_index + self.window_size], axis=1).transpose(1, 0)
         selected_sample_data = torch.from_numpy(selected_sample_data).type(torch.FloatTensor)
         # 获取训练标签
         selected_sample_labels = torch.from_numpy(
